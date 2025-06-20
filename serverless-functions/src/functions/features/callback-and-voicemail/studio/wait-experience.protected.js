@@ -7,37 +7,13 @@ const { twilioExecute } = require(Runtime.getFunctions()['common/helpers/functio
 const TaskRouterOperations = require(Runtime.getFunctions()['common/twilio-wrappers/taskrouter'].path);
 const CallbackOperations = require(Runtime.getFunctions()['features/callback-and-voicemail/common/callback-operations']
   .path);
+const LanguagePrompts = require(Runtime.getFunctions()['features/callback-and-voicemail/common/language-prompts'].path);
 
 const options = {
   retainPlaceInQueue: true,
-  sayOptions: { voice: 'Polly.Joanna' },
+  sayOptions: { voice: 'Google.en-US-Neural2-A' },
   holdMusicUrl: 'http://com.twilio.music.soft-rock.s3.amazonaws.com/_ghost_-_promo_2_sample_pack.mp3',
-  messages: {
-    initialGreeting: 'Please wait while we direct your call to the next available representative.',
-    repeatingPrompt:
-      'To request a callback, or to leave a voicemail, press the star key at anytime... Otherwise, please continue to hold.',
-    callbackOrVoicemailChoice:
-      'To request a callback when a representative becomes available, press 1. \
-          To leave a voicemail for the next available representative, press 2. \
-          To continue holding, press any other key, or remain on the line.',
-    callbackChoice:
-      'To request a callback to the same number you have called from, press 1. \
-          To request a callback to a different number, press 2. \
-          To continue holding, press any other key, or remain on the line.',
-    callbackSubmitted: 'Thank you. A callback has been requested. You will receive a call shortly. Goodbye.',
-    callbackForOtherNumber:
-      'Please enter the phone number, starting with the country code. When you are finished, press the # sign.',
-    callbackForOtherNumberConfirm1: 'You entered',
-    callbackForOtherNumberConfirm2: 'Press 1 to confirm or 2 to re-enter.',
-    recordVoicemailPrompt:
-      'Please leave a message at the tone. When you are finished recording, you may hang up, or press the star key.',
-    voicemailNotCaptured: "Sorry. We weren't able to capture your message.",
-    voicemailRecorded: 'Your voicemail has been successfully recorded... Goodbye',
-    callbackAndVoicemailUnavailable:
-      'The option to request a callback or leave a voicemail is not available at this time. Please continue to hold.',
-    processingError: 'Sorry, we were unable to perform this operation. Please remain on the line.',
-    invalidInput: 'You have entered an invalid selection. Please try again.',
-  },
+  messages: {},
 };
 
 /**
@@ -115,6 +91,31 @@ exports.handler = async (context, event, callback) => {
   }
 
   const { Digits, CallSid, QueueSid, mode, enqueuedTaskSid, skipGreeting } = event;
+  let selectedLanguage = 'english';
+  let enqueuedTask = null;
+
+  if (mode === 'initialize' || mode === undefined || !enqueuedTaskSid) {
+    const workflowSid = (await twilioExecute(context, (client) => client.queues(QueueSid).fetch())).data.friendlyName;
+    enqueuedTask = await getPendingTaskByCallSid(context, CallSid, workflowSid);
+    if (enqueuedTask?.attributes?.selected_language) {
+      selectedLanguage = enqueuedTask.attributes.selected_language.toLowerCase();
+    }
+  } else {
+    const taskData = await fetchTask(context, enqueuedTaskSid);
+    if (taskData?.attributes?.selected_language) {
+      selectedLanguage = taskData.attributes.selected_language.toLowerCase();
+    }
+  }
+
+  try {
+    const prompts = await LanguagePrompts.getLanguagePrompts({ language: selectedLanguage });
+
+    options.sayOptions.voice = selectedLanguage === 'spanish' ? 'Google.es-US-Neural2-A' : options.sayOptions.voice;
+    options.messages = prompts;
+  } catch (err) {
+    console.error('Error fetching language prompts:', err);
+  }
+
   switch (mode) {
     case 'initialize':
     case undefined:
@@ -123,7 +124,7 @@ exports.handler = async (context, event, callback) => {
       const enqueuedWorkflowSid = (await twilioExecute(context, (client) => client.queues(QueueSid).fetch())).data
         .friendlyName;
       console.log(`Enqueued workflow sid: ${enqueuedWorkflowSid}`);
-      const enqueuedTask = await getPendingTaskByCallSid(context, CallSid, enqueuedWorkflowSid);
+      enqueuedTask = await getPendingTaskByCallSid(context, CallSid, enqueuedWorkflowSid);
 
       const redirectBaseUrl = `${baseUrl}?mode=main-wait-loop&CallSid=${CallSid}`;
 
