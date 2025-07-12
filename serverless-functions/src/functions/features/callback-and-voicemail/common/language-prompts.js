@@ -5,13 +5,13 @@ exports.getLanguagePrompts = async (parameters) => {
       english:
         "Thank you for calling! If you're inquiring about a number different from the one you're calling from, press 1. Otherwise, please stay on the line.",
       spanish:
-        '¡Gracias por su llamada! Si necesita asistencia con un número de teléfono diferente al que usted está llamando desde, oprima 1. Y si no, permanezca en la línea.',
+        '¡Gracias por su llamada! Si necesita asistencia sobre un número diferente al que está utilizando para esta llamada, marque 1. Y si no, permanezca en la línea.',
       french:
         'Merci de nous appeler! Si vous avez une question sur un autre numéro que celui utilisé pour cet appel, appuyez sur 1. Sinon, veuillez rester en ligne.',
     },
     provideNumber: {
       english: 'Please input the 10 digit number you are calling about.',
-      spanish: 'Por favor, entre el número de teléfono por el cual necesita ayuda.',
+      spanish: 'Por favor, ingrese el número de teléfono por el cual necesita ayuda.',
       french: 'Veuillez saisir le numéro à 10 chiffres concerné par votre demande.',
     },
     informRecording: {

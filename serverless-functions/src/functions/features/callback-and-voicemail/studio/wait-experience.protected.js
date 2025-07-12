@@ -110,7 +110,7 @@ exports.handler = async (context, event, callback) => {
   try {
     const prompts = await LanguagePrompts.getLanguagePrompts({ language: selectedLanguage });
 
-    options.sayOptions.voice = selectedLanguage === 'spanish' ? 'Google.es-US-Neural2-A' : options.sayOptions.voice;
+    options.sayOptions.voice = selectedLanguage === 'spanish' ? 'Google.es-US-Neural2-A' : 'Google.en-US-Neural2-A';
     options.messages = prompts;
   } catch (err) {
     console.error('Error fetching language prompts:', err);
