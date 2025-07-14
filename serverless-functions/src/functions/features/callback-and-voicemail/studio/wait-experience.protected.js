@@ -92,6 +92,7 @@ exports.handler = async (context, event, callback) => {
 
   const { Digits, CallSid, QueueSid, mode, enqueuedTaskSid, skipGreeting } = event;
   let selectedLanguage = 'english';
+  let voice = 'Google.en-US-Neural2-A';
   let enqueuedTask = null;
 
   if (mode === 'initialize' || mode === undefined || !enqueuedTaskSid) {
@@ -99,18 +100,20 @@ exports.handler = async (context, event, callback) => {
     enqueuedTask = await getPendingTaskByCallSid(context, CallSid, workflowSid);
     if (enqueuedTask?.attributes?.selected_language) {
       selectedLanguage = enqueuedTask.attributes.selected_language.toLowerCase();
+      voice = enqueuedTask.attributes.voice;
     }
   } else {
     const taskData = await fetchTask(context, enqueuedTaskSid);
     if (taskData?.attributes?.selected_language) {
       selectedLanguage = taskData.attributes.selected_language.toLowerCase();
+      voice = taskData.attributes.voice;
     }
   }
 
   try {
     const prompts = await LanguagePrompts.getLanguagePrompts({ language: selectedLanguage });
 
-    options.sayOptions.voice = selectedLanguage === 'spanish' ? 'Google.es-US-Neural2-A' : 'Google.en-US-Neural2-A';
+    options.sayOptions.voice = voice;
     options.messages = prompts;
   } catch (err) {
     console.error('Error fetching language prompts:', err);
